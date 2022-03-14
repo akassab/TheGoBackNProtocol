@@ -4,6 +4,6 @@ namespace A2Sender.models.packets
 {
     public class EotPacket : Packet
     {
-        public EotPacket() : base(TypeEnum.Eot) {}
+        public EotPacket(uint sequenceNumber) : base(TypeEnum.Eot, sequenceNumber) {}
     }
 }

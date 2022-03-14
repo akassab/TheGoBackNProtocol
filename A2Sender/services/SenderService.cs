@@ -20,18 +20,12 @@ namespace A2Sender.services
                 throw new Exception("Sender: TrySendPackets(): We can't send a packet if we aren't listening for any.");
             }
             // Create array of packets from file
-            Packet[]? packets;
-            if (! FileUtils.TryCreatePacketsFromFile(ConsoleParametersService.GetFileName(), out packets)) {
+            if (! FileUtils.TryCreatePacketsFromFile(ConsoleParametersService.GetFileName(), out (DataPacket[]? dataPackets, EotPacket? eotPacket) packets)) {
                 Console.WriteLine("SenderService: TrySendPackets(): Cannot send packets without any packets to send.");
                 return false;
             }
-            // check we have at least one packet
-            if (packets == null || packets.Length == 0) {
-                Console.WriteLine("SenderService: TrySendPackets(): No packets to send.");
-                return false;
-            }
 
-            int nPackest = packets.Length;
+            int nPackest = packets.dataPackets.Length;
             // ready up udp sender client
             IPEndPoint hostEndPoint = new IPEndPoint(
                 IPAddress.Parse(ConsoleParametersService.GetHostAddress()), 
@@ -41,12 +35,17 @@ namespace A2Sender.services
             udpSender.Connect(hostEndPoint);
             // send each packet in order
             try {
+                // Send Data Packets
                 for (int p_i = 0; p_i < nPackest; ++p_i) {
                     // Do we need to lock this
-                    SpinWait.SpinUntil(() => WindowService.nSent < WindowService.size);
+                    SpinWait.SpinUntil(() => WindowService.GetNumPacketsSent() < WindowService.GetWindowSize());
                     int p_i_copy = p_i; // copy as p_i for the sake of threading in a for loop
-                    SenderService.SendPacket(packets[p_i_copy]);
+                    WindowService.IncrementNumPacketsSent();
+                    SendPacket(packets.dataPackets[p_i_copy]);
+
                 }
+                // Send EOT packet
+                SendPacket(packets.eotPacket);
             }
             catch (Exception e) {
                 Console.WriteLine("SenderService: TrySendPackets(): Failed to start thread for a packet.");
@@ -59,8 +58,8 @@ namespace A2Sender.services
         private static void SendPacket(Packet packet) {
             try {
                 udpSender.Send(PacketUtils.Encode(packet));
-                SenderService.sentPackets[packet.sequenceNumber] = new SentPacketInfo();
-                new Thread(() => SenderService.StartTimerForPacket(packet)).Start();
+                sentPackets[packet.sequenceNumber] = new SentPacketInfo();
+                new Thread(() => StartTimerForPacket(packet)).Start();
                 Console.WriteLine("Sent packet: " + packet.sequenceNumber);
             }
             catch (Exception e) {
@@ -75,12 +74,11 @@ namespace A2Sender.services
             // Timeout tester
             Thread.Sleep(ConsoleParametersService.GetTimeOut());
             // Send packet again
-            if (!SenderService.sentPackets[packet.sequenceNumber].acknowledged) {
-                
-                if (packet.sequenceNumber == WindowService.baseIndex) {
-                    WindowService.size = 1;
+            if (!sentPackets[packet.sequenceNumber].acknowledged) {
+                if (packet.sequenceNumber == WindowService.GetBaseIndex()) {
+                    WindowService.ResetWindowSize();
                 }
-                SenderService.SendPacket(packet);
+                SendPacket(packet);
             }
         }
     }

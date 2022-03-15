@@ -1,6 +1,6 @@
 namespace A2Sender.enums
 {
-    // 0: SACK, 1: Data, 2: EOT
+    // TypeEnum: Enum that represents a packet type.
     public enum TypeEnum
     {
         Sack = 0,

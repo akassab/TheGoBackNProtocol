@@ -2,31 +2,31 @@
 
 namespace A2Sender
 {
-internal class Program
-    {
-        public static void Main(string[] args)
+    // Beginning of the program.
+    internal class Program
         {
-            Console.WriteLine("Program started..."); 
-
-            // verify/parse command line arguments.
-            if (ConsoleParametersService.TryParseAndSetArgs(args))
+            public static void Main(string[] args)
             {
-                // start new thread to listen for acks indefinitely
-                ListenerService.ListenForAck();
-                
-                // try to send packets
-                if (SenderService.TrySendPackets()) {
-                    Console.WriteLine("Sent all packets!");
+                StackTraceService.ConsoleLog("Program started..."); 
+
+                // verify/parse command line arguments.
+                if (ConsoleArgumentsService.TryParseAndSetArgs(args))
+                {
+                    // start new thread to listen for acks indefinitely
+                    ListenerService.ListenForSackPackets();
+                    
+                    // try to send packets
+                    if (SenderService.TrySendDataAndEotPackets()) {
+                        StackTraceService.ConsoleLog("Sent all packets!");
+                    }
+                    else {
+                        //  todo:  IF THIS FAILS WE SHOULD CANCEL THE THREAD ****************
+                        StackTraceService.ConsoleLog("Failed to send packets.");
+                    }
                 }
                 else {
-                    //  todo:  IF THIS FAILS WE SHOULD CANCEL THE THREAD ****************
-                    Console.WriteLine("Failed to send packets.");
+                    StackTraceService.ConsoleLog("Failed to parse console paramater(s).");
                 }
-
-            }
-            else {
-                Console.WriteLine("Failed to parse console paramater(s).");
             }
         }
-    }
 }

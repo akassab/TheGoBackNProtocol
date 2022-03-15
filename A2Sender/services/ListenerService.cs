@@ -1,85 +1,85 @@
-using System.Net;
-using System.Net.Sockets;
 using A2Sender.models;
 using A2Sender.models.packets;
 using A2Sender.utils;
+using System.Net;
+using System.Net.Sockets;
 namespace A2Sender.services
 {
+    // ListenerService: Singleton class that listens for ack packets sent by the emulator (ultimately from the receiver).
     public static class ListenerService
     {
+        // Is the listner service listening for packets?
         private static bool listening = false;
+        // The udp client.
+        public static UdpClient? udpClient = null;
 
-        public static bool GetIsListening() {
+        // IsListening(): returns true if the ListenerService is listening for packets and false otherwise.
+        public static bool IsListening() {
             return ListenerService.listening;
         }
 
-        // Listen for acknowledgement (this should run under a new thread)
-        public static void ListenForAck() {
-
-            if (GetIsListening()) {
-                throw new Exception("ListenerService: ListenForAck(): Listener is already listening.");
+        // ListenForSackPackets(): Start listening for Sack Packets.
+        public static void ListenForSackPackets() {
+            // Verify this has only been called once.
+            if (IsListening()) {
+                throw new Exception("Listener is already listening.");
             }
-
-            // start listening for ack
             ListenerService.listening = true;
+            
+            // Setup
+            int listenerPort  = ConsoleArgumentsService.GetPortSender();
+            IPEndPoint groupEndpoint = new IPEndPoint(IPAddress.Any, listenerPort);
+            udpClient = new UdpClient(listenerPort);
 
-            // start new thread
+            // Start new thread
             new Thread(async () => {
-
-                // sender's listener port
-                int listenerPort = listenerPort = ConsoleParametersService.GetPortSender();
-                IPEndPoint groupEndpoint = new IPEndPoint(IPAddress.Any, listenerPort);
-                // setup udp client listener for acks
-                UdpClient listener = new UdpClient(listenerPort);
-                
                 try
-                {
+                {   
                     while (true)
                     {
-                        Console.WriteLine("ListenerService: ListenForAck(): Waiting for broadcast");
-                        byte[] receivedPacketBytes = listener.Receive(ref groupEndpoint);
-                        Console.WriteLine($"ListenerService: ListenForAck(): Received broadcast from {groupEndpoint} :");
+                        // Wait for bytes
+                        StackTraceService.ConsoleLog("Listening for packets...");
+                        byte[] receivedPacketBytes = udpClient.Receive(ref groupEndpoint);                  
+                        StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}.");
 
+                        // Lock the WindowService while we process this incoming data
                         lock (WindowService.windowLock) {
 
                             // Decode received packetBytes
                             Packet? receivedPacket;
                             if (!PacketUtils.TryDecode(receivedPacketBytes, out receivedPacket) && receivedPacket != null) {
-                                Console.WriteLine("ListenerService: ListenForAck(): Received byte array cannot be decoded into a Packet.");
+                                StackTraceService.ConsoleLog("Received byte array cannot be decoded into a Packet. Ignoring packet.");
                                 continue;
                             }
+
                             // Get the packet status
                             PacketStatus? packetStatus = WindowService.GetPacketStatus(receivedPacket.sequenceNumber);
-                            // Ensure the packet exists in the first place
-                             if (packetStatus != null) {
+                            // See if the packet has been acknowledged already or is expired
+                            if (packetStatus == null || packetStatus.acknowledged  || packetStatus.IsExpired()) {
+                                continue;
+                            }
 
-                                // See if the packet has been acknowledged already
-                                if (packetStatus.acknowledged) {
-                                    // packet already acknowledges and we are receiving it again
-                                }
-                                // If it has not been acknowledge but it is expired
-                                else if (packetStatus.IsExpired()) {
-                                    // If Timeout and the packet is base index of the window
-                                    if (receivedPacket.sequenceNumber == WindowService.GetBaseIndex()) {
-                                        WindowService.ResetWindowSize();
-                                    }
-                                }
-                                else {
-                                    // it is not expired
-                                    WindowService.SetPacketAcknowledgeStatus(receivedPacket.sequenceNumber, true);
-                                }
-
-                            }  
+                            WindowService.SetPacketAcknowledged(receivedPacket.sequenceNumber);
+                            // If the acknowledged packet was the base index, then increment the base index by 1.
+                            if (receivedPacket.sequenceNumber == WindowService.GetBaseIndex()) {
+                                WindowService.IncrementBaseIndex();
+                            }
+                            // we are done and we got the total number of packets
+                            if (WindowService.GetNumPacketsReceived() == WindowService.GetTotalNumPackets()) {
+                                StackTraceService.ConsoleLog("Done!");
+                                break;
+                            }
                         }
-                    }    
+                    }
                 }
                 catch (SocketException e)
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine(e.ToString());
                 }
                 finally
                 {
-                    listener.Close();
+                    Console.WriteLine("closed catched");
+                    udpClient.Close();
                 }
             }).Start();
         }

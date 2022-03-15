@@ -2,22 +2,24 @@ using A2Sender.enums;
 
 namespace A2Sender.models.packets
 {
-    // Packet data class
+    // Packet: Abtract class that reprsents a Packet.
     abstract public class Packet
     {
+        // Constant represnting that max number of characters allowed in a packet.
         public static readonly uint MAX_LENGTH = 500;
+        // Constant used to number the sequenceNumber for each packet when performing modulo.
         public static readonly uint SEQUENCE_NUMBER_DIVISOR = 32;
         
-        // 0: SACK, 1: Data, 2: EOT
+        // Type of packet (Data, Sack, Eot).
         public readonly TypeEnum type;
-        // Modulo 32 
+        // Sequence number of the packet.
         public readonly uint sequenceNumber;
-        // Length of the String variable ‘data’ 
+        // Length of the packet (number of characters).
         public readonly uint length;
-        // String with Max Length 500
+        // String data in the packet.
         public readonly string data;
 
-        // constructor
+        // Constructor.
         protected Packet(TypeEnum type, uint sequenceNumber, uint length = 0, string data = "")
         {
             this.type = type;
@@ -26,22 +28,9 @@ namespace A2Sender.models.packets
             this.data = data;
         }
 
-        public static Packet? PacketFactory(TypeEnum type, uint sequenceNumber, uint length = 0, string data = "") {
-            switch (type) {
-                case TypeEnum.Data:
-                    return new DataPacket(sequenceNumber, length, data);
-                case TypeEnum.Sack:
-                    return new SackPacket(sequenceNumber);
-                case TypeEnum.Eot:
-                    return new EotPacket(sequenceNumber);
-                default:
-                    return null;
-            }
-        }
-    
+        // Overrides ToString() method.
         public override string ToString() {
             return $"Type: {this.type}, Seqnum: {this.sequenceNumber}, Length: {this.length}, Data: ...length={this.data.Length}";
         }
     }
 }
-

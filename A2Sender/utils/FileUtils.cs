@@ -1,8 +1,13 @@
 using A2Sender.models.packets;
+using A2Sender.services;
 
 namespace A2Sender.utils
+    // FileUtils: Singleton class that provides utilities for reading file into bytes and 
+    //  creating packets from a file.
 {    public static class FileUtils
     {
+        // ReadFile(fileName): Tries create an array of bytes representing bytes containing data in fileName and
+        //  returns null when it cannot.
         public static byte[]? ReadFile(string fileName)
         {
             try
@@ -11,61 +16,47 @@ namespace A2Sender.utils
             }
             catch
             {
-                Console.WriteLine("FileReader: ReadFile(): Could not read bytes from file name " + fileName);
+                StackTraceService.ConsoleLog($"Could not read bytes from file name {fileName}.");
                 return null;
             }
         }
 
-         // createPacketsFromFile(fileName) consumes a fileName string expected to be in the directory of the 
-        //  calling program, and returns an array of packets containing the file data string (as fragments).
+         // TryCreatePacketsFromFile(...): Returns a tuple containing 1. an array of DataPackets created from fileName, and
+         //     2. an eot packet. Returns true on success and false otherwise.
         public static bool TryCreatePacketsFromFile(string fileName, out (DataPacket[]? dataPackets, EotPacket? eotPacket) packets)
         {
+            // Get all text from the file
             string text;
             try {
-                // Convert file contents to string
                 text = File.ReadAllText(fileName);
             }
             catch (Exception e) {
-                Console.WriteLine("FileUtils: TryCreatePacketsFromFile(): Failed to read text from file: ".Concat(fileName));
+                StackTraceService.ConsoleLog($"Failed to read text from file: {fileName}");
                 packets = (null,null);
                 return false;
             }
-            // number of characters in the file
-            int numCharacters = text.Length;
-            
-            // number of packets we will need considering each packet can only hold 500 characters
-            uint nPackets;
 
-            // see if the total number of packets is unsigned 32 bit
-            string nPacketString = (((((uint)numCharacters) + Packet.MAX_LENGTH - ((uint)1)) / Packet.MAX_LENGTH)-((uint)1)).ToString();
-            if (!UInt32.TryParse(nPacketString, out nPackets)) {
-                Console.WriteLine("FileUtils: TryCreatePacketsFromFile(): Max sequence number is not unsigned 32-bit: ".Concat(nPacketString));
-                packets = (null,null);
-                return false;
-            }
-            
+            // Calculate the number of packets needed and determine if that number is even an unsigned integer
+            int numCharacters = text.Length;
+            uint nPackets= ((((uint)numCharacters) + Packet.MAX_LENGTH - ((uint)1)) / Packet.MAX_LENGTH);
             // Zero packets to send
             if (nPackets < 1) {
-                Console.WriteLine("FileUtils: TryCreatePacketsFromFile(): Zero packets to send.: ".Concat(nPacketString));
+                StackTraceService.ConsoleLog("Zero packets to send.");
                 packets = (null,null);
                 return false;
             }
 
-            // initialize dataPackets array
+            // Create array of data packets
             DataPacket[] dataPackets = new DataPacket[nPackets+1];
-
-            // startIndex offset
             int startIndex = 0;
-
-            // initialize packets in packet array
-            for (uint p_i = 0; p_i < nPackets+1; ++p_i) {
+            for (uint p_i = 0; p_i < nPackets; ++p_i) {
                 // full packet
                 if (numCharacters - Packet.MAX_LENGTH >= 0) {
                     dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, Packet.MAX_LENGTH, text.Substring(startIndex, (int) Packet.MAX_LENGTH));
                     startIndex += (int) Packet.MAX_LENGTH;
                     numCharacters -= (int) Packet.MAX_LENGTH;
                 }
-                // Final packet/ non-full packet with string data < 500
+                // less than full packet
                 else {
                     dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, (uint) numCharacters, text.Substring(startIndex,numCharacters));
                 }

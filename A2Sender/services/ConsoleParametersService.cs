@@ -1,109 +1,121 @@
 namespace A2Sender.services
 {
-    public static class ConsoleParametersService
+    // ConsoleArgumentsService: Singleton Service for parsing, storing, and retreiving console arguments provided 
+    //  when running ./sender.sh ... on the command line.
+    public static class ConsoleArgumentsService
     {
+        // hostname of emulator.
         private static string? hostAddress;
+        // port of emulator.
         private static int? portEmulator;
+        // port of sender (this program).
         private static int? portSender;
+        // timeout for each sent packet.
         private static int? timeout;
+        // file name that contains the data to send.
         private static string? fileName;
 
-        public static bool IsConsoleParametersSet() {
-            return hostAddress != null && portEmulator != null && portSender != null && fileName != null;
-        }
-
-        public static void SetConsoleParameters(string hostAddress, int portEmulator, int portSender, int timeout, string fileName) {
-            // Set console parameters
-            if (ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: SetConsoleParameters(): Console Parameters already set.");
+        // SetConsoleArguments(...): Sets the console parameters. Throws an exception if console parameters were already set.
+        public static void SetConsoleArguments(string hostAddress, int portEmulator, int portSender, int timeout, string fileName) {
+            if (ConsoleArgumentsService.hostAddress != null
+            && ConsoleArgumentsService.portEmulator != null 
+            && ConsoleArgumentsService.portSender != null 
+            && ConsoleArgumentsService.timeout != null
+            && ConsoleArgumentsService.fileName != null) {
+                throw new Exception("Console Parameters already set.");
             }
-            ConsoleParametersService.hostAddress = hostAddress;
-            ConsoleParametersService.portEmulator = portEmulator;
-            ConsoleParametersService.portSender = portSender;
-            ConsoleParametersService.timeout = timeout;
-            ConsoleParametersService.fileName = fileName;
+
+            ConsoleArgumentsService.hostAddress = hostAddress;
+            ConsoleArgumentsService.portEmulator = portEmulator;
+            ConsoleArgumentsService.portSender = portSender;
+            ConsoleArgumentsService.timeout = timeout;
+            ConsoleArgumentsService.fileName = fileName;
         }
 
-        public static int GetTimeOut() {
-            if (!ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: GetTimeOut(): Console Parameters not set.");
-            }
-            return (int) ConsoleParametersService.timeout;
-        }
-
-        public static int GetPortSender() {
-            if (!ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: GetSenderPort(): Console Parameters not set.");
-            }
-            return (int) ConsoleParametersService.portSender;
-        }
-
-        public static int GetPortEmulator() {
-            if (!ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: GetPortEmulator(): Console Parameters not set.");
-            }
-            return (int) ConsoleParametersService.portEmulator;
-        }
-
-        public static string GetFileName() {
-            if (!ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: GetFileName(): Console Parameters not set.");
-            }
-            return (string) ConsoleParametersService.fileName;
-        }
-
+        // GetHostAddress(): Gets the host address and throws an exception if it was not set.
         public static string GetHostAddress() {
-            if (!ConsoleParametersService.IsConsoleParametersSet()) {
-                // This should never execute
-                throw new Exception("ConsoleParametersService: GetHostAddress(): Console Parameters not set.");
+            if (hostAddress == null) {
+                throw new Exception("hostAddress not set");
             }
-            return (string) ConsoleParametersService.hostAddress;
+            return hostAddress;
         }
 
-        // Will try to parse the arguments provided with the ./server.sh script.
-        //  returns whether parsing succeeded or not.
+        // GetPortEmulator(): Gets the port emulator and throws an exception if it was not set.
+        public static int GetPortEmulator() {
+            if (portEmulator == null) {
+                throw new Exception("portEmulator not set");
+            }
+            return (int) portEmulator;
+        }
+
+        // GetPortSender(): Gets the port sender and throws an exception if it was not set.
+        public static int GetPortSender() {
+            if (portSender == null) {
+                throw new Exception("portSender not set");
+            }
+            return (int) portSender;
+        }
+
+        // GetTimeout(): Gets the the timeout and throws an exception if it was not set.
+        public static int GetTimeout() {
+            if (timeout == null) {
+                throw new Exception("timeout not set");
+            }
+            return (int) timeout;
+        }
+
+        // GetFileName(): Gets the the file name and throws an exception if it was not set.
+        public static string GetFileName() {
+            if (fileName == null) {
+                throw new Exception("fileName not set");
+            }
+            return fileName;
+        }
+
+        // TryParseAndSetArgs(...): Tries to parse the args provided by console script to set the private fields defined at the top
+        //  of this clas. Returns False and outputs a message when something goes wrong and true when success.
         public static bool TryParseAndSetArgs(string[] args)
         {
-            Console.WriteLine("Reading input...");
+            StackTraceService.ConsoleLog("Reading Input...");
+            
+            // validate correct number of arguments
             int numArguments = args.Length;
             if (numArguments != 5) {
-                Console.WriteLine("Invalid number of arguments provided.");
+                StackTraceService.ConsoleLog("Invalid number of arguments provided.");
                 return false;
             }
-
             // validate no empty or whitespace
             for (int i = 0; i < numArguments; ++i) {
                 if (string.IsNullOrEmpty(args[i]) || string.IsNullOrWhiteSpace(args[i]) ) {
-                    Console.WriteLine("Argument " + (i+1) + "is invalid");
+                    StackTraceService.ConsoleLog($"Argument {(i+1)} + is invalid.");
                     return false;
                 }
             }
-            // get all fields and validate types
+            // get host name
             string hostAddress = args[0];
+            // get portEmulator
             int portEmulator;
             if (!int.TryParse(args[1], out portEmulator) || portEmulator <= 0) {
-                Console.WriteLine("<port_emulator> must an unsigned integer.");
+                StackTraceService.ConsoleLog("<port_emulator> must an unsigned integer.");
                 return false;
             }
+            // get port sender
             int portSender;
             if (!int.TryParse(args[2], out portSender) || portSender <= 0) {
-                Console.WriteLine("<port_sender> must an unsigned integer.");
+                StackTraceService.ConsoleLog("<port_sender> must an unsigned integer.");
                 return false;
             }
+            // get timeout
             int timeout;
             if (!int.TryParse(args[3], out timeout) || timeout <= 0) {
-                Console.WriteLine("<timeout> must an unsigned integer.");
+                StackTraceService.ConsoleLog("<timeout> must an unsigned integer.");
                 return false;
             }
+            // get fileName
             string fileName = args[4];
         
             // Initialize data class
-            ConsoleParametersService.SetConsoleParameters(hostAddress, portEmulator, portSender, timeout, fileName);
+            SetConsoleArguments(hostAddress, portEmulator, portSender, timeout, fileName);
             Console.WriteLine("Reading input successful!");
             return true;
         }

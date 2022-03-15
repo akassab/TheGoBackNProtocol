@@ -9,9 +9,9 @@ namespace A2Sender.services
     public static class SenderService
     {
 
-        public static readonly UdpClient udpSender = new UdpClient(AddressFamily.InterNetwork);
+        public static readonly object senderLock = new object();
 
-        public static Dictionary<uint, SentPacketInfo> sentPackets = new Dictionary<uint, SentPacketInfo>();
+        private static readonly UdpClient udpSender = new UdpClient(AddressFamily.InterNetwork);
 
         public static bool TrySendPackets() {
             // Verify we are listening
@@ -36,16 +36,28 @@ namespace A2Sender.services
             // send each packet in order
             try {
                 // Send Data Packets
-                for (int p_i = 0; p_i < nPackest; ++p_i) {
-                    // Do we need to lock this
-                    SpinWait.SpinUntil(() => WindowService.GetNumPacketsSent() < WindowService.GetWindowSize());
-                    int p_i_copy = p_i; // copy as p_i for the sake of threading in a for loop
-                    WindowService.IncrementNumPacketsSent();
-                    SendPacket(packets.dataPackets[p_i_copy]);
 
+                int p_i = WindowService.GetBaseIndex() - 1;
+                while (p_i < nPackest) {
+
+                   
+                    SpinWait.SpinUntil(() => (WindowService.GetNumPacketsSent() + 1) == WindowService.GetWindowSize() && WindowService.IncrementNumPacketsSent());
+
+                    lock (WindowService.windowLock) {
+                        if (WindowService.GetWasReset()) {
+                            p_i = WindowService.GetBaseIndex();
+                        }
+                        else {
+                            p_i += 1;
+                        }
+                    }
+                    int p_i_copy = p_i; // copy as p_i for the sake of threading in a for loop
+                    SendPacket(packets.dataPackets[p_i_copy]);
                 }
+
                 // Send EOT packet
                 SendPacket(packets.eotPacket);
+                
             }
             catch (Exception e) {
                 Console.WriteLine("SenderService: TrySendPackets(): Failed to start thread for a packet.");
@@ -55,12 +67,13 @@ namespace A2Sender.services
             return true;
         }
 
-        private static void SendPacket(Packet packet) {
+        public static void SendPacket(Packet packet) {
             try {
-                udpSender.Send(PacketUtils.Encode(packet));
-                sentPackets[packet.sequenceNumber] = new SentPacketInfo();
-                new Thread(() => StartTimerForPacket(packet)).Start();
-                Console.WriteLine("Sent packet: " + packet.sequenceNumber);
+                    udpSender.Send(PacketUtils.Encode(packet));
+                    Console.WriteLine("Sent packet: " + packet.sequenceNumber);
+                    WindowService.InitializePacketStatus(packet.sequenceNumber);
+                    new Thread(() => StartTimerForPacket(packet)).Start();
+              
             }
             catch (Exception e) {
                 Console.WriteLine("Failed to send packet with sequence number: " + packet.sequenceNumber);
@@ -73,13 +86,15 @@ namespace A2Sender.services
         private static void StartTimerForPacket(Packet packet) {
             // Timeout tester
             Thread.Sleep(ConsoleParametersService.GetTimeOut());
-            // Send packet again
-            if (!sentPackets[packet.sequenceNumber].acknowledged) {
-                if (packet.sequenceNumber == WindowService.GetBaseIndex()) {
-                    WindowService.ResetWindowSize();
+            lock (WindowService.windowLock) {
+                if (!WindowService.GetPacketStatus(packet.sequenceNumber).acknowledged) {
+                    if (packet.sequenceNumber == WindowService.GetBaseIndex()) {
+                        WindowService.ResetWindowSize();
+                    }
+                    SendPacket(packet);
                 }
-                SendPacket(packet);
             }
+            
         }
     }
 }

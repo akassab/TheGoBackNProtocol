@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using A2Sender.models;
 using A2Sender.models.packets;
 using A2Sender.utils;
-
 namespace A2Sender.services
 {
     public static class ListenerService
@@ -41,33 +40,38 @@ namespace A2Sender.services
                         byte[] receivedPacketBytes = listener.Receive(ref groupEndpoint);
                         Console.WriteLine($"ListenerService: ListenForAck(): Received broadcast from {groupEndpoint} :");
 
-                        // Decode received packetBytes
-                        Packet? receivedPacket;
-                        if (!PacketUtils.TryDecode(receivedPacketBytes, out receivedPacket) && receivedPacket != null) {
-                            Console.WriteLine("ListenerService: ListenForAck(): Received byte array cannot be decoded into a Packet.");
-                            continue;
-                        }
+                        lock (WindowService.windowLock) {
 
-                        // See if the decocded packet was sent in the first palce
-                        SentPacketInfo? sentPacketInfo;
-                        if (!SenderService.sentPackets.TryGetValue((receivedPacket.sequenceNumber), out sentPacketInfo) && sentPacketInfo != null) {
-                            Console.WriteLine("ListenerService: ListenForAck(): We never sent a packet with sequence number".Concat(receivedPacket.sequenceNumber.ToString()));
-                            continue;
-                        }
+                            // Decode received packetBytes
+                            Packet? receivedPacket;
+                            if (!PacketUtils.TryDecode(receivedPacketBytes, out receivedPacket) && receivedPacket != null) {
+                                Console.WriteLine("ListenerService: ListenForAck(): Received byte array cannot be decoded into a Packet.");
+                                continue;
+                            }
+                            // Get the packet status
+                            PacketStatus? packetStatus = WindowService.GetPacketStatus(receivedPacket.sequenceNumber);
+                            // Ensure the packet exists in the first place
+                             if (packetStatus != null) {
 
-                        // See if the packet has been acknowledged already
-                        if (sentPacketInfo.acknowledged) {
-                            // packet already acknowledges and we are receiving it again
+                                // See if the packet has been acknowledged already
+                                if (packetStatus.acknowledged) {
+                                    // packet already acknowledges and we are receiving it again
+                                }
+                                // If it has not been acknowledge but it is expired
+                                else if (packetStatus.IsExpired()) {
+                                    // If Timeout and the packet is base index of the window
+                                    if (receivedPacket.sequenceNumber == WindowService.GetBaseIndex()) {
+                                        WindowService.ResetWindowSize();
+                                    }
+                                }
+                                else {
+                                    // it is not expired
+                                    WindowService.SetPacketAcknowledgeStatus(receivedPacket.sequenceNumber, true);
+                                }
+
+                            }  
                         }
-                        // If it has not been acknowledged yet, see if it has been expired or not
-                        else if (!sentPacketInfo.IsExpired()) {
-                            // not acknowledged yet but we have met the timeout requirements
-                            SenderService.sentPackets[receivedPacket.sequenceNumber].acknowledged = true;
-                        }
-                        else {
-                            // failed the timeout requirements
-                        }
-                    }
+                    }    
                 }
                 catch (SocketException e)
                 {

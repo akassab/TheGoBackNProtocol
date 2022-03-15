@@ -13,15 +13,14 @@ namespace A2Sender.services
             if (stackFrame != null) {
                 MethodBase? methodInformation = stackFrame.GetMethod();
                 if (methodInformation != null) {
-                    string methodName = methodInformation.Name;
                     if (methodInformation.ReflectedType != null) {
                         string className = methodInformation.ReflectedType.Name;
-                        Console.WriteLine($"{className}: {methodName}(): {message}");
+                        Console.WriteLine($"{className}: {message}");
                         return;
                     }
                 }
             }
-            throw new Exception("Something wen't wrong with the stack frame.");
+            throw new Exception("Something went wrong with the stack frame.");
         }
     }
 }

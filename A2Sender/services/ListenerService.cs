@@ -1,3 +1,4 @@
+using A2Sender.enums;
 using A2Sender.models;
 using A2Sender.models.packets;
 using A2Sender.utils;
@@ -54,21 +55,32 @@ namespace A2Sender.services
 
                             // Get the packet status
                             PacketStatus? packetStatus = WindowService.GetPacketStatus(receivedPacket.sequenceNumber);
-                            // See if the packet has been acknowledged already or is expired
-                            if (packetStatus == null || packetStatus.acknowledged  || packetStatus.IsExpired()) {
+                            // See if the packetStatus is null (it was never sent in the first palce) or it has been acknowledged already or is expired
+                            //  then skip
+                            if (packetStatus == null) {
+                                continue;
+                            }
+                            if (packetStatus.acknowledged || packetStatus.IsExpired()) {
+                                FileUtils.WriteLineToLogFile(LogFileEnum.Ack, receivedPacket.sequenceNumber.ToString());
                                 continue;
                             }
 
                             WindowService.SetPacketAcknowledged(receivedPacket.sequenceNumber);
+                
                             // If the acknowledged packet was the base index, then increment the base index by 1.
                             if (receivedPacket.sequenceNumber == WindowService.GetBaseIndex()) {
+                                Console.WriteLine("here too");
                                 WindowService.IncrementBaseIndex();
                             }
-                            // we are done and we got the total number of packets
-                            if (WindowService.GetNumPacketsReceived() == WindowService.GetTotalNumPackets()) {
-                                StackTraceService.ConsoleLog("Done!");
-                                break;
-                            }
+                                // we are done and we got the total number of packets
+                                if (WindowService.GetNumPacketsReceived() == WindowService.GetTotalNumPackets()) {
+                                    FileUtils.WriteLineToLogFile(LogFileEnum.Ack, "EOT");
+                                    StackTraceService.ConsoleLog("Done!");
+                                    break;
+                                }
+                                else {
+                                    FileUtils.WriteLineToLogFile(LogFileEnum.Ack, receivedPacket.sequenceNumber.ToString());
+                                }
                         }
                     }
                 }

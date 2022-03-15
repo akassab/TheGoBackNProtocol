@@ -1,3 +1,4 @@
+using A2Sender.enums;
 using A2Sender.models.packets;
 using A2Sender.utils;
 using System.Net;
@@ -74,8 +75,19 @@ namespace A2Sender.services
         // SendPacket(packet): Sends a data packet and starts StartTimerForPacket() on a new thread.
         public static void SendPacket(Packet packet) {
             try {
-                    udpSender.Send(PacketUtils.Encode(packet));
-                    StackTraceService.ConsoleLog($"Sent packet: {packet.sequenceNumber}");
+
+                    lock (WindowService.windowLock) {
+                            udpSender.Send(PacketUtils.Encode(packet));
+                            StackTraceService.ConsoleLog($"Sent packet: {packet.sequenceNumber}");
+                        // Eot Packet
+                        if (WindowService.GetNumPacketsSent() == WindowService.GetTotalNumPackets() - 1) {
+                            FileUtils.WriteLineToLogFile(LogFileEnum.SeqNum, "EOT");
+                        }
+                        else {
+                            FileUtils.WriteLineToLogFile(LogFileEnum.SeqNum, packet.sequenceNumber.ToString());
+                        }
+                    }
+
                     WindowService.InitializePacketStatus(packet.sequenceNumber);
                     new Thread(() => StartTimerForPacket(packet)).Start();
             }

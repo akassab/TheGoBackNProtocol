@@ -1,3 +1,4 @@
+using A2Sender.enums;
 using A2Sender.models.packets;
 using A2Sender.services;
 
@@ -6,19 +7,35 @@ namespace A2Sender.utils
     //  creating packets from a file.
 {    public static class FileUtils
     {
-        // ReadFile(fileName): Tries create an array of bytes representing bytes containing data in fileName and
-        //  returns null when it cannot.
-        public static byte[]? ReadFile(string fileName)
+
+        // Maps LogFileEnums to the string file name.
+        static readonly Dictionary<LogFileEnum, string> logFileName = new Dictionary<LogFileEnum, string> 
         {
-            try
-            {
-                return File.ReadAllBytes(fileName);
+            { LogFileEnum.SeqNum , "seqnum.log" },
+            { LogFileEnum.Ack,  "ack.log" },
+            { LogFileEnum.N,  "N.log" }
+        };
+
+
+        // TryWriteToFile(fileName, logFile): Tries to write a line to the fileName assoicated with LogFileEnum.
+        public static bool TryCreateEmptyLogFiles() {
+            try {
+                foreach (KeyValuePair<LogFileEnum, string> logFile in logFileName) {
+                    File.Create(logFile.Value).Dispose();
+                }
+                return true;
+
             }
-            catch
-            {
-                StackTraceService.ConsoleLog($"Could not read bytes from file name {fileName}.");
-                return null;
+            catch (Exception e) {
+                Console.WriteLine(e.ToString());
+                return false;
             }
+        }
+
+        // TryWriteLineToFile(logFileEnum, line): Tries to write a line to the fileName assoicated with LogFileEnum.
+        public static void WriteLineToLogFile(LogFileEnum logFileEnum, string sequenceNumberString) {
+            File.AppendAllText(logFileName[logFileEnum], $"t={WindowService.GetTimestamp()} {sequenceNumberString}{Environment.NewLine}");
+            WindowService.IncrementTimestamp();
         }
 
          // TryCreatePacketsFromFile(...): Returns a tuple containing 1. an array of DataPackets created from fileName, and

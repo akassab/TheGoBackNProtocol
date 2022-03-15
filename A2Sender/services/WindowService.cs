@@ -1,4 +1,6 @@
+using A2Sender.enums;
 using A2Sender.models;
+using A2Sender.utils;
 namespace A2Sender.services
 {
     // WindowService: Is a singleton service class representing the sender's sliding window.
@@ -21,11 +23,14 @@ namespace A2Sender.services
         // Dictionary that maps a sent sequence number to a PacketStatus that contains information about sent packets
         //  (whether they have been acknowledges yet or not and the time at which the packet was sent).
         private static Dictionary<uint, PacketStatus> sentPackets = new Dictionary<uint, PacketStatus>();
+        // timestamp
+        private static int timestamp = 0;
 
         // SetTotalNumPackets(totalNumPackets): Sets the totalNumPackets field or throws an exception if it was already set.
         public static void SetTotalNumPackets(int totalNumPackets) {
             if (WindowService.totalNumPackets == null) {
                 WindowService.totalNumPackets = totalNumPackets;
+                FileUtils.WriteLineToLogFile(LogFileEnum.N, size.ToString());
             }
             else {
                 throw new Exception("Total Number of packets should be not be set twice.");
@@ -51,6 +56,7 @@ namespace A2Sender.services
         // ResetWindowSize(): Increments the window size by 1.
         public static void IncrementWindowSize() {
                 size += 1;
+                FileUtils.WriteLineToLogFile(LogFileEnum.N, size.ToString());
         }
 
         // GetNumPacketsSent(): Returns the number of packets sent so far.
@@ -99,6 +105,7 @@ namespace A2Sender.services
         public static void ResetWindowSize() {
             numPacketsSent = 0;
             size = 1;
+            FileUtils.WriteLineToLogFile(LogFileEnum.N, size.ToString());
             wasReset = true;
         }
 
@@ -116,6 +123,16 @@ namespace A2Sender.services
                 StackTraceService.ConsoleLog($"Could not get packet status for packet with sequence number {sequenceNumber}");
                 return null;
             }
+        }
+
+        // GetTimestamp(): Returns the timestamp
+        public static int GetTimestamp() {
+            return timestamp;
+        }
+
+        // IncrementTimestamp(): Increments the timestamp by 1
+        public static void IncrementTimestamp() {
+            timestamp += 1;
         }
     }
 }

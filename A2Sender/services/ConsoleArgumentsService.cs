@@ -6,16 +6,20 @@ namespace A2Sender.services
     {
         // hostname of emulator.
         private static string? hostAddress;
+
         // port of emulator.
         private static int? portEmulator;
+
         // port of sender (this program).
         private static int? portSender;
+
         // timeout for each sent packet.
         private static int? timeout;
+
         // file name that contains the data to send.
         private static string? fileName;
 
-        // SetConsoleArguments(...): Sets the console parameters. Throws an exception if console parameters were already set.
+        // SetConsoleArguments(...): Sets all the static fields.
         public static void SetConsoleArguments(string hostAddress, int portEmulator, int portSender, int timeout, string fileName) {
             if (ConsoleArgumentsService.hostAddress != null
             && ConsoleArgumentsService.portEmulator != null 
@@ -32,44 +36,34 @@ namespace A2Sender.services
             ConsoleArgumentsService.fileName = fileName;
         }
 
-        // GetHostAddress(): Gets the host address and throws an exception if it was not set.
+        // GetHostAddress(): Gets the host address field.
         public static string GetHostAddress() {
-            if (hostAddress == null) {
-                throw new Exception("hostAddress not set");
-            }
+            if (hostAddress == null) throw new Exception("hostAddress not set");
             return hostAddress;
         }
 
-        // GetPortEmulator(): Gets the port emulator and throws an exception if it was not set.
+        // GetPortEmulator(): Gets the port emulator field.
         public static int GetPortEmulator() {
-            if (portEmulator == null) {
-                throw new Exception("portEmulator not set");
-            }
+            if (portEmulator == null) throw new Exception("portEmulator not set");
             return (int) portEmulator;
         }
 
-        // GetPortSender(): Gets the port sender and throws an exception if it was not set.
+        // GetPortSender(): Gets the port sender field.
         public static int GetPortSender() {
-            if (portSender == null) {
-                throw new Exception("portSender not set");
-            }
+            if (portSender == null) throw new Exception("portSender not set");
             return (int) portSender;
         }
 
-        // GetTimeout(): Gets the the timeout and throws an exception if it was not set.
+        // GetTimeout(): Gets the the timeout static field.
         public static int GetTimeout() {
-            if (timeout == null) {
-                throw new Exception("timeout not set");
-            }
+            if (timeout == null) throw new Exception("timeout not set");
             return (int) timeout;
         }
 
-        // GetFileName(): Gets the the file name and throws an exception if it was not set.
+        // GetFileName(): Gets the the file name static field.
         public static string GetFileName() {
-            if (fileName == null) {
-                throw new Exception("fileName not set");
-            }
-            return fileName;
+            if (fileName == null) throw new Exception("fileName not set");
+                return fileName;
         }
 
         // TryParseAndSetArgs(...): Tries to parse the args provided by console script to set the private fields defined at the top

@@ -20,7 +20,7 @@ namespace A2Sender.models
 
         // IsExpired(): Determines if the packet has expired or not.
         public bool IsExpired() {
-            return (DateTime.UtcNow - this.dateTimeSent).TotalMilliseconds < ConsoleArgumentsService.GetTimeout();
+            return (DateTime.UtcNow - this.dateTimeSent).TotalMilliseconds >= ConsoleArgumentsService.GetTimeout();
         }
     }
 }

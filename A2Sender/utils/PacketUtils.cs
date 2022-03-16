@@ -8,7 +8,7 @@ namespace A2Sender.utils
     // PacketUtils: A singleton class containing utilities to create packets, encode/decode packets.
     public static class PacketUtils
     {
-        // Factory(...): Factory method for creating a Packet of type Data/Sack/Eot. Returns null when it can't.
+        // Factory method for creating a Packet of type Data/Sack/Eot. Returns null when it can't.
         public static Packet? Factory(TypeEnum type, uint sequenceNumber, uint length = 0, string data = "") {
             switch (type) {
                 case TypeEnum.Data:
@@ -22,7 +22,7 @@ namespace A2Sender.utils
             }
         }
 
-        // Encode(packet): encodes a packet into an array of bytes.
+        // Encodes a packet into an array of bytes.
         static public byte[] Encode(Packet packet) {
             // Adjust byte orders for integer fields
             byte[] typeLittenEndian = BitConverter.GetBytes(IPAddress.NetworkToHostOrder((long)packet.type));
@@ -46,11 +46,11 @@ namespace A2Sender.utils
             return x;
         }
 
-        // TryDecode(...): Tries to decode an array of bytes into a Packet. Returns true on success and false otherwise.
+        // Tries to decode an array of bytes into a Packet. Returns true on success and false otherwise.
         static public bool TryDecode(byte[] packetBytes, out Packet? packet) {
             // Verify min number of bytes
             int nBytes = packetBytes.Length;
-            if (!(nBytes > 12)) {
+            if (!(nBytes >= 12)) {
                 StackTraceService.ConsoleLog($"Could not decode a packet with {nBytes} number of bytes.");
                 packet = null;
                 return false;
@@ -60,7 +60,8 @@ namespace A2Sender.utils
                 // Decode the type of packet
                 byte[] typeBytes = new Byte[4];
                 Array.Copy(packetBytes, 0, typeBytes, 0, 4);
-                TypeEnum? type = TypeEnumUtils.UIntToTypeEnum(BitConverter.ToUInt32(typeBytes));
+                Array.Reverse(typeBytes, 0, 4);
+                TypeEnum? type = TypeEnumUtils.UIntToTypeEnum(BitConverter.ToInt32(typeBytes));
                 if (type == null) {
                     StackTraceService.ConsoleLog("Could not determine type of the packet.");
                     packet = null;
@@ -69,10 +70,12 @@ namespace A2Sender.utils
                 // Decode the sequence number
                 byte[] sequenceBytes = new Byte[4];
                 Array.Copy(packetBytes, 4, sequenceBytes, 0, 4);
+                Array.Reverse(sequenceBytes, 0, 4);
                 uint sequenceNumber = BitConverter.ToUInt32(sequenceBytes);
                 // Decode the length
                 byte[] lengthBytes = new Byte[4];
                 Array.Copy(packetBytes, 8, lengthBytes, 0, 4);
+                Array.Reverse(lengthBytes, 0, 4);
                 uint length = BitConverter.ToUInt32(lengthBytes);
                 // Decode the string data
                 string data = Encoding.ASCII.GetString(packetBytes, 12, nBytes - 12);

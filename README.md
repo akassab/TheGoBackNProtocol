@@ -45,6 +45,7 @@
 - `./receiver.sh 129.97.167.51 9993 9994 output_file.txt`
 - `chmod u+x ./sender.sh`
 - `./sender.sh 129.97.167.51 9991 9992 50 2_lap_65_packets.txt`
+
 - (alternatively use other example files provided):
 - 0_lap_31_packets.txt (should send 30 data + 1 eot packet(s))
 - 1_lap_32_packets.txt (should send 31 data + 1 eot packet(s) and make a lap)

@@ -34,6 +34,18 @@
     2. The `<host_name>` must be the ip-address (e.g `129.97.167.51`) of the school machine.
     3. See below for which machine.
 
+
+## Example
+- Emulator use `129.97.167.51` (ubuntu2004-002)
+- Receiver use `129.97.167.52` (ubuntu2004-004)
+- Sender use  `129.97.167.27` (ubuntu2004-008)
+- Run in this order:
+- `./cs456-a2-nemulator/nEmulator 9991 129.97.167.52 9994 9993 129.97.167.27 9992 1 0.2 0`
+- `chmod u+x ./receiver.sh`
+- `./receiver.sh 129.97.167.51 9993 9994 output_file.txt`
+- `chmod u+x ./sender.sh`
+- `./sender.sh 129.97.167.51 9991 9992 50 2_lap_65_packets.txt`
+- (alternatively use other example files provided)
 # Which machines
 - MUST SPECIFY THE IP-ADDRESS (e.g `129.97.167.51`).
 - Tested server on `ubuntu2004-002.student.cs.uwaterloo.ca` (`129.97.167.51`) and `ubuntu2004-004.student.cs.uwaterloo.ca` (e.g `129.97.167.52`).

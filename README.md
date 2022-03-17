@@ -1,5 +1,12 @@
 # README
 
+## Personal Information
+
+- Student Name: Ayman
+- Student ID: akassab
+- WatID: 20585861
+- email: akassab@uwaterloo.ca
+
 ## Makefile
 
 - Not needed.

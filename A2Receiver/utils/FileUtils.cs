@@ -9,9 +9,14 @@ namespace A2Receiver.utils
         public static string arrivalLogFileName = "arrival.log";
 
         // Tries to create a file to store the received data.
-        public static bool TryCreateEmptyFile(string FileName) {
+        public static bool TryCreateEmptyFile(string fileName) {
+
+            if (File.Exists(fileName)) {
+                File.Delete(fileName);
+            }
+
             try {
-                File.Create(FileName).Dispose();
+                File.Create(fileName).Dispose();
                 return true;
             }
             catch (Exception e) {

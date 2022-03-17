@@ -40,9 +40,14 @@
 - Receiver use `129.97.167.52` (ubuntu2004-004)
 - Sender use  `129.97.167.27` (ubuntu2004-008)
 - Run in this order:
-- `./cs456-a2-nemulator/nEmulator 9991 129.97.167.52 9994 9993 129.97.167.27 9992 1 0.2 0`
+### On Emualtor Machine
+- `cd cs456-a2-nemulator`
+- `chmod u+x ./nEmulator`
+-  `./nEmulator 9991 129.97.167.52 9994 9993 129.97.167.27 9992 1 0.2 0`
+### On Receiver Machine
 - `chmod u+x ./receiver.sh`
 - `./receiver.sh 129.97.167.51 9993 9994 output_file.txt`
+### On Sender Machine
 - `chmod u+x ./sender.sh`
 - `./sender.sh 129.97.167.51 9991 9992 50 2_lap_65_packets.txt`
 

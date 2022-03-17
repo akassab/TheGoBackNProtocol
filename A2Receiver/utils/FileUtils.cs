@@ -1,4 +1,3 @@
-using A2Receiver.models.packets;
 using A2Receiver.services;
 
 namespace A2Receiver.utils
@@ -7,12 +6,12 @@ namespace A2Receiver.utils
 {    public static class FileUtils
     {
 
-        private static string arrivalLogFileName = "arrival.log";
+        public static string arrivalLogFileName = "arrival.log";
 
         // Tries to create a file to store the received data.
-        public static bool TryCreateEmptyFile() {
+        public static bool TryCreateEmptyFile(string FileName) {
             try {
-                File.Create(ConsoleArgumentsService.GetFileName()).Dispose();
+                File.Create(FileName).Dispose();
                 return true;
             }
             catch (Exception e) {
@@ -23,15 +22,10 @@ namespace A2Receiver.utils
         
         // Tries to write a line to the logFile.
         public static void WriteLineToLogFile(string sequenceNumberString) {
-            if (sequenceNumberString == "EOT") {
-                 File.AppendAllText(arrivalLogFileName, $"{sequenceNumberString}");
-            }
-            else {
-                 File.AppendAllText(arrivalLogFileName, $"{sequenceNumberString}{Environment.NewLine}");
-            }
+            File.AppendAllText(arrivalLogFileName, $"{sequenceNumberString}{Environment.NewLine}");
         }
         
-        // Writes text to the data file 
+        // Writes text to the data file.
         public static void WriteLineToDataFile(string stringData) {
             File.AppendAllText(ConsoleArgumentsService.GetFileName(), stringData);
         }

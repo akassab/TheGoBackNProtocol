@@ -18,9 +18,13 @@ internal class Program
                 return;
             }
 
-             // try to create log files
-            if (!FileUtils.TryCreateEmptyFile()) {
-                StackTraceService.ConsoleLog("Failed to create empty file.");
+             // try to create log and arrival file files
+            if (!FileUtils.TryCreateEmptyFile(ConsoleArgumentsService.GetFileName())) {
+                StackTraceService.ConsoleLog("Failed to create empty data file.");
+                return;
+            }
+            if (!FileUtils.TryCreateEmptyFile(FileUtils.arrivalLogFileName)) {
+                StackTraceService.ConsoleLog("Failed to create empty arrival.log file.");
                 return;
             }
 

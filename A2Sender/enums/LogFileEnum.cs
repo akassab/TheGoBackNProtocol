@@ -1,6 +1,6 @@
 namespace A2Sender.enums
 {
-    // LogFileEnum: Enum that represents a log file.
+    // Enum that represents a log file.
     public enum LogFileEnum
     {
         SeqNum = 0,

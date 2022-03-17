@@ -2,7 +2,7 @@ using A2Sender.enums;
 
 namespace A2Sender.models.packets
 {
-    // Packet: Abtract class that reprsents a Packet.
+    // Abtract class that reprsents a Packet.
     abstract public class Packet
     {
         // Constant represnting that max number of characters allowed in a packet.

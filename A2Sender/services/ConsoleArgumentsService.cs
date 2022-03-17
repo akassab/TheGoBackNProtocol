@@ -1,6 +1,6 @@
 namespace A2Sender.services
 {
-    // ConsoleArgumentsService: Singleton Service for parsing, storing, and retreiving console arguments provided 
+    // Singleton Service for parsing, storing, and retreiving console arguments provided 
     //  when running ./sender.sh ... on the command line.
     public static class ConsoleArgumentsService
     {

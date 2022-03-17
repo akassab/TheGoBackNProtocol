@@ -15,6 +15,7 @@ namespace A2Sender.services
         private static bool wasWindowReset = false;
         private static int baseIndex = 0;
         private static int timestamp = 0;
+        private static int lap = 0;
 
         // History of packets
         private static int numPacketsTotal = 0;
@@ -52,9 +53,15 @@ namespace A2Sender.services
         public static int GetWindowCapacity() {
             return windowCapacity;
         }
-        public static bool IncrementWindowCapacity() {
-            windowCapacity += 1;
-            return true;
+        public static bool IncrementWindowCapacity() 
+        {
+            if (windowSize == windowCapacity) {
+                return false;
+            }
+            else {
+                windowCapacity += 1;
+                return true;
+            }
         }
 
         // baseIndex methods
@@ -64,6 +71,7 @@ namespace A2Sender.services
         public static void IncrementBaseIndex() {
             if (baseIndex == 31) {
                 baseIndex = 0;
+                lap += 1;
             }
             else {
                 baseIndex += 1;
@@ -77,6 +85,11 @@ namespace A2Sender.services
         public static void IncrementTimestamp() {
             timestamp += 1;
         }
+
+        // Get which lap we are on since we only use seq numbers 0-31
+        public static int GetLap() {
+            return lap;
+        }
         
         // numPacketsTotal methods
         public static void SetNumPacketsTotal(int numPacketsTotal) {
@@ -86,11 +99,8 @@ namespace A2Sender.services
             return numPacketsTotal;
         }
 
-        public static void SetPacketAcknowledged(uint sequenceNumber) {
-            sentPackets[sequenceNumber].acknowledged = true;
-        }
         public static void InitializePacketStatus(uint sequenceNumber) {
-                sentPackets[sequenceNumber] = new PacketStatus();
+            sentPackets[sequenceNumber] = new PacketStatus();
         }
         public static PacketStatus? GetPacketStatus(uint sequenceNumber) {
             if (sentPackets.TryGetValue(sequenceNumber, out PacketStatus? packetStatus) && packetStatus != null) {
@@ -100,6 +110,10 @@ namespace A2Sender.services
                 return null;
             }
         }
+        public static void SetPacketAcknowledged(uint sequenceNumber) {
+            sentPackets[sequenceNumber].acknowledged = true;
+        }
+
         public static void RemovePacketFromWindow(uint sequenceNumber) {
             sentPackets.Remove(sequenceNumber);
             windowCapacity -= 1;

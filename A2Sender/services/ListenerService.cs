@@ -6,85 +6,81 @@ using System.Net;
 using System.Net.Sockets;
 namespace A2Sender.services
 {
-    // ListenerService: Singleton class that listens for ack packets sent by the emulator (ultimately from the receiver).
+    // Singleton class that listens for ack packets sent by the emulator (ultimately from the receiver).
     public static class ListenerService
     {
-
-        // Start listening for Sack Packets.
         public static UdpClient? udpClient = null;
 
         public static void ListenForSackPackets() {
             try
             {   
-                // Setup
+                // setup
                 IPEndPoint groupEndpoint = new IPEndPoint(IPAddress.Any, ConsoleArgumentsService.GetPortSender()); 
                 udpClient = new UdpClient(ConsoleArgumentsService.GetPortSender());
+                StackTraceService.ConsoleLog("Listening for packets...");
                 while (true)
                 {
-                    // Wait for bytes
-                    StackTraceService.ConsoleLog("Listening for packets...");
-                    byte[] receivedPacketBytes = udpClient.Receive(ref groupEndpoint);                  
-                    StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}!");
+                    // wait for bytes
+                    byte[] receivedPacketBytes = udpClient.Receive(ref groupEndpoint);         
 
-                    // Lock the WindowService while we process this incoming data
+                    // lock the WindowService while we process this incoming data
                     lock (WindowService.windowLock) {
 
-                        // Decode received packetBytes
+                        // decode received packetBytes
                         Packet? receivedPacket;
                         if (!PacketUtils.TryDecode(receivedPacketBytes, out receivedPacket) && receivedPacket != null) {
-                            StackTraceService.ConsoleLog("Could not decode packet.");
-                            StackTraceService.ConsoleLog("Ignoring...");
+                            StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Could not decode packet. Ignoring...");
                             continue;
                         }
 
                         if (receivedPacket.type == TypeEnum.Eot) {
-                            StackTraceService.ConsoleLog("Obtained last packet (EOT)!");
-                            StackTraceService.ConsoleLog("Closing Listener...");
+                            StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Obtained last packet (EOT)! Closing listener.");
                             FileUtils.WriteLineToLogFile(LogFileEnum.Ack, "EOT");
                             break;
                         }
                         else if (WindowService.IsBeforeBaseIndex(receivedPacket.sequenceNumber)) {
-                            StackTraceService.ConsoleLog("Obtained pack from before base index!");
+                            StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Obtained pack from before base index. Ignoring...");
                             FileUtils.WriteLineToLogFile(LogFileEnum.Ack, receivedPacket.sequenceNumber.ToString());
                             continue;
                         }
 
-                        // Get the packet status
+                        // get the packet status
                         PacketStatus? packetStatus = WindowService.GetPacketStatus(receivedPacket.sequenceNumber);
 
-                        if (packetStatus == null) {
-                            StackTraceService.ConsoleLog("Packet Curropted!");
-                            StackTraceService.ConsoleLog("Ignoring...");
+                        if (packetStatus == null) { 
+                            StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Packet curropted. Ignoring...");
                             continue;
                         }
                         else if (packetStatus.acknowledged || packetStatus.IsExpired()) {
-                            if (packetStatus.acknowledged) {
-                                StackTraceService.ConsoleLog("Packet already acknowledged!");
+                            if (packetStatus.acknowledged && packetStatus.IsExpired()) {
+                                StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Packet {receivedPacket.sequenceNumber}  acknowledged already and expired. Ignoring...");
                             }
-                            if (packetStatus.IsExpired()) {
-                                StackTraceService.ConsoleLog("Packet already expired!");
+                            else if (packetStatus.acknowledged) {
+                                StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Packet{receivedPacket.sequenceNumber}  acknowledged already. Ignoring...");
                             }
-                            // Write to log file
+                            else if (packetStatus.IsExpired()) {
+                                StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Packet {receivedPacket.sequenceNumber} expired. Ignoring...");
+                            }
+                            // write to log file
                             FileUtils.WriteLineToLogFile(LogFileEnum.Ack, receivedPacket.sequenceNumber.ToString());
                             continue;
                         }
 
-                        StackTraceService.ConsoleLog($"Acknowledging packet with sequence number {receivedPacket.sequenceNumber}!");
+                        StackTraceService.ConsoleLog($"Received broadcast from {groupEndpoint}: Packet acknowledged {receivedPacket.sequenceNumber}!");
                         WindowService.SetPacketAcknowledged(receivedPacket.sequenceNumber);
 
+                        // packet is at base of window
                         if (receivedPacket.sequenceNumber == WindowService.GetBaseIndex()) {
-
-                             StackTraceService.ConsoleLog($"That was at the baseIndex! Incrementing new base index...");
                              if (receivedPacket.sequenceNumber != WindowService.GetNumPacketsTotal() - 1) {
                                  WindowService.IncrementBaseIndex();
                              }
                              
+                             // remove from window
                              WindowService.RemovePacketFromWindow(receivedPacket.sequenceNumber);
 
                              PacketStatus? nextPacketStatus = WindowService.GetPacketStatus(((uint)WindowService.GetBaseIndex()));
+                             // remove conseuctive from base as well
                              while (nextPacketStatus != null && nextPacketStatus.acknowledged) {
-
-                                 StackTraceService.ConsoleLog($"Next up packet number {WindowService.GetBaseIndex()} was acknowledged before too!.. Incrementing new base index...");
                                  WindowService.RemovePacketFromWindow((uint)WindowService.GetBaseIndex());
                                  WindowService.IncrementBaseIndex();
 

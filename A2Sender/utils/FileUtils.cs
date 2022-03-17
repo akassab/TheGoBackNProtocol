@@ -43,34 +43,40 @@ namespace A2Sender.utils
         //     2. an eot packet. Returns true on success and false otherwise.
         public static (DataPacket[] dataPackets, EotPacket eotPacket) CreatePacketsFromFile(string fileName)
         {
-            // get all text from the file
-            string text = File.ReadAllText(fileName);
+            try {
+                // get all text from the file
+                    string text = File.ReadAllText(fileName);
 
-            // calculate the number of packets needed
-            int numCharacters = text.Length;
-            uint nPackets= ((((uint)numCharacters) + Packet.MAX_LENGTH - ((uint)1)) / Packet.MAX_LENGTH);
+                    // calculate the number of packets needed
+                    int numCharacters = text.Length;
+                    uint nPackets= ((((uint)numCharacters) + Packet.MAX_LENGTH - ((uint)1)) / Packet.MAX_LENGTH);
 
-            if (nPackets < 1) {
-                StackTraceService.ConsoleLog($"ERROR: Zero packets to send from file {fileName}.");
-                throw new Exception();
-            }
+                    if (nPackets < 1) {
+                        StackTraceService.ConsoleLog($"ERROR: Zero packets to send from file {fileName}.");
+                        throw new Exception();
+                    }
 
-            // create array of data packets
-            DataPacket[] dataPackets = new DataPacket[nPackets];
-            int startIndex = 0;
-            for (uint p_i = 0; p_i < nPackets; ++p_i) {
-                // full packet
-                if (numCharacters - Packet.MAX_LENGTH >= 0) {
-                    dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, Packet.MAX_LENGTH, text.Substring(startIndex, (int) Packet.MAX_LENGTH));
-                    startIndex += (int) Packet.MAX_LENGTH;
-                    numCharacters -= (int) Packet.MAX_LENGTH;
+                    // create array of data packets
+                    DataPacket[] dataPackets = new DataPacket[nPackets];
+                    int startIndex = 0;
+                    for (uint p_i = 0; p_i < nPackets; ++p_i) {
+                        // full packet
+                        if (numCharacters - Packet.MAX_LENGTH >= 0) {
+                            dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, Packet.MAX_LENGTH, text.Substring(startIndex, (int) Packet.MAX_LENGTH));
+                            startIndex += (int) Packet.MAX_LENGTH;
+                            numCharacters -= (int) Packet.MAX_LENGTH;
+                        }
+                        // less than full packet
+                        else {
+                            dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, (uint) numCharacters, text.Substring(startIndex,numCharacters));
+                        }
+                    }
+                    return (dataPackets, new EotPacket(nPackets % Packet.SEQUENCE_NUMBER_DIVISOR));
                 }
-                // less than full packet
-                else {
-                    dataPackets[p_i] = new DataPacket(p_i % Packet.SEQUENCE_NUMBER_DIVISOR, (uint) numCharacters, text.Substring(startIndex,numCharacters));
+                catch (Exception e) {
+                    StackTraceService.ConsoleLog($"<input_file> with name '{fileName}' does not exists.");
+                    throw;
                 }
-            }
-            return (dataPackets, new EotPacket(nPackets % Packet.SEQUENCE_NUMBER_DIVISOR));
-        }
+            }    
     }
 }

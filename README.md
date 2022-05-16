@@ -1,11 +1,11 @@
 # README
 
-## Personal Information
+Implemented a reliable data transfer protocol via a sliding window protocol on behalf of a UDP connection thread in the Transport layer. 
 
-- Student Name: Ayman
-- Student ID: akassab
-- WatID: 20585861
-- email: akassab@uwaterloo.ca
+https://www.geeksforgeeks.org/sliding-window-protocol-set-3-selective-repeat/
+
+![image](https://user-images.githubusercontent.com/15854649/168665331-3390b5c6-e152-41e1-8879-34047561bb24.png)
+
 
 ## Makefile
 

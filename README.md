@@ -1,5 +1,7 @@
 # README
 
+Computer Networks Final Project - Grade 100%
+
 Implemented a reliable data transfer protocol via a sliding window protocol on behalf of a UDP connection thread in the Transport layer. 
 
 https://www.geeksforgeeks.org/sliding-window-protocol-set-3-selective-repeat/
